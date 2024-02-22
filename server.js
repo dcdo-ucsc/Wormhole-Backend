@@ -1,37 +1,70 @@
-const express = require('express');
-const fs = require('fs');
-const path = require('path');
-const crypto = require('crypto');
-const fileUpload = require('express-fileupload');
-const cors = require('cors');
+require("dotenv").config();
+const express = require("express");
 const app = express();
+const mongoose = require("mongoose");
+const cors = require("cors");
+const path = require("path");
+const agenda = require("./src/utils/agenda");
+const bodyParser = require("body-parser");
+const fs = require("fs");
 
-const port = 3000; // Ensure this port is different from the frontend port
+const { SESSION_PATH } = require("./src/configs/serverConfig");
 
-app.use(express.static('build')); // Serve static files from the React build directory
-app.use(fileUpload());
+const fileRouter = require("./src/routes/files");
+const sessionRouter = require("./src/routes/session");
+const home = require("./src/routes/home");
 
-app.use(cors({
-  origin: 'http://localhost:5173' // Allow only the frontend URL
-}));
+// DEV - Agenda dashboard (for monitoring tasks)
+let Agendash = require("agendash");
+app.use("/dash", Agendash(agenda));
+
+const port = process.env.PORT;
+
+// Database connection
+mongoose.connect(process.env.DATABASE_URL);
+
+app.use(
+  cors({
+    origin: "http://localhost:5173", // Allow only the frontend URL
+  })
+);
+
+// start Task scheduler 
+(async function () {
+  await agenda.start();
+})();
+
+/* Middlewares */
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+
+// Error handling
+app.use(function (err, req, res, next) {
+  if (err) {
+    res.status(500).json({ error: err.message });
+  } else {
+    next();
+  }
+});
+
+/* Routes */
+app.use("/home", home);
+app.use("/api/session", sessionRouter);
+app.use("/api/files", fileRouter);
+
+// Home
+app.get("/", (req, res) => {
+  res.send("Welcome to the File Upload API");
+});
 
 // Create a directory for session files if it doesn't exist
-const sessionsDir = path.join(__dirname, 'sessions');
-if (!fs.existsSync(sessionsDir)) {
-  fs.mkdirSync(sessionsDir);
+if (!fs.existsSync(SESSION_PATH)) {
+  fs.mkdirSync(SESSION_PATH);
 }
 
-// Endpoint to create a new session
-app.get('/session', (req, res) => {
-  console.log('Session acquired.')
-  const sessionId = crypto.randomBytes(16).toString('hex');
-  const sessionDir = path.join(sessionsDir, sessionId);
-
-  fs.mkdirSync(sessionDir); // Create a directory for the session
-
-  res.json({ sessionId });
-});
-
+// Connection
 app.listen(port, () => {
-  console.log(`Server listening at http://localhost:${port}`);
+  console.log(`Server is running on port '${port}'`);
 });
+
+module.exports = app;
