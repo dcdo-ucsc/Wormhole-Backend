@@ -5,6 +5,7 @@
 > [!IMPORTANT]  
 > Front-end should generate `userId` with **uuidv4** to guarantee **uniqueness** > `userId` should be stored on their device via cookies (or other means).
 
+> [!IMPORTANT]  
 > The `accessToken` here is only for the session owner. It is used to upload files. They don't need to authenticate with /api/session/auth.
 
 This endpoint allows the creation of a new session.
@@ -34,7 +35,7 @@ Returns a JSON object with the following fields:
 
 - `500 Internal Server Error`: An error occurred while creating the session.
 
-### Session Creation Request Example
+### `Session Create` Request Example
 
 <details>
 <summary>Show Code</summary>
@@ -108,7 +109,7 @@ When a session requires a password but:
 
 - `404 Not Found`: No files found.
 
-### Auth Request Example
+### `Auth` Request Example
 
 <details>
 <summary>Show Code</summary>
@@ -171,7 +172,7 @@ Type of request body: **form-data**
 - `413 Payload Too Large`: The file is too large.
 - `413 Payload Too Large`: Number of files in session exceeds the limit.
 
-### Upload Request Example
+### `Upload` Request Example
 
 <details>
 <summary>Show Code</summary>
@@ -220,7 +221,11 @@ Download files from specified session.
 
 - `Authorization`: The access token obtained from `/api/session/auth` or `/api/session/create`.
 
-### Download Request Example
+### Responses
+
+Just like the `GET` request, the response will be the file itself.
+
+### `Download` Request Example
 
 <details>
 <summary>Show Code</summary>
