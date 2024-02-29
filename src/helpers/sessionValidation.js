@@ -50,7 +50,7 @@ const isFileCountExceeded = async (req, res, sessionId) => {
   const allowedFiles = MAX_FILE_COUNT - sessionCount; // File count after upload
 
   if (sessionCount >= MAX_FILE_COUNT) {
-    res.status(413).json({ error: "Maximum file count exceeded" });
+    res.status(413).json({ error: "Maximum # of file in session exceeded" });
     return true;
   }
 
