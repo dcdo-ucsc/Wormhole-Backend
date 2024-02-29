@@ -22,6 +22,12 @@ router.get("/", (req, res) => {
 
 /**
  * We need to verify is the user is the owner of the session
+ * 
+ * http://localhost:9001/api/files/upload?fileCount={{fileCount}}   <-- this is the postman url i used
+ * 
+ * fileCount is in the param bc multer doesn't give us the file count
+ * without it uploading partial files into the session. I'm too lazy to fix it.
+ * it works for now
  *
  */
 router.post(
@@ -36,7 +42,6 @@ router.post(
       return res.status(400).send("Please upload a file.");
     }
 
-    // const sessionId = req.params.sessionId;
     const sessionId = req.payload.sessionId;
 
     const session = await Session.findOne({ _id: sessionId });

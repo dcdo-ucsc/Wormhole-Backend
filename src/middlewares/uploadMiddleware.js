@@ -26,6 +26,7 @@ const authIsAdmin = async (req, res, next) => {
     }
     const sessionId = payload.sessionId;
 
+    // save session to req object to be used for rest of the route
     req.session = await isValidSessionEntry(res, sessionId);
     if (!req.session) return;
 
@@ -45,11 +46,8 @@ const authIsAdmin = async (req, res, next) => {
 // Middleware for checking session / file upload
 const validateUpload = async (req, res, next) => {
   const sessionId = req.payload.sessionId;
-  // save session to req object to be used for rest of the route
-  req.session = await isValidSessionEntry(res, sessionId);
-  if (!req.session) return;
-
-  if (await isFileCountExceeded(res, sessionId)) return;
+  
+  if (await isFileCountExceeded(req, res, sessionId)) return;
 
   next();
 };
