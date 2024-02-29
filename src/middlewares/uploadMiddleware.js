@@ -9,9 +9,10 @@ const {
  * Middleware to authenticate the user's token
  */
 const authIsAdmin = async (req, res, next) => {
+  const SECRET_KEY = process.env.SECRET_KEY;
   const authHeader = req.headers["authorization"];
-  console.log(authHeader);
   const accessToken = authHeader && authHeader.split(" ")[1];
+  
   // Check if the token is present
   if (!accessToken) {
     return res.status(401).json({
@@ -19,7 +20,7 @@ const authIsAdmin = async (req, res, next) => {
     });
   }
 
-  jwt.verify(accessToken, process.env.SECRET_KEY, async (err, payload) => {
+  jwt.verify(accessToken, SECRET_KEY, async (err, payload) => {
     if (err) {
       return res.sendStatus(403);
     }

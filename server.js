@@ -18,7 +18,12 @@ const home = require("./src/routes/home");
 let Agendash = require("agendash");
 app.use("/dash", Agendash(agenda));
 
-const port = process.env.PORT;
+const port = process.env.PORT || 9001;
+
+if (!process.env.SECRET_KEY) {
+  console.error('No SECRET_KEY environment variable found');
+  process.exit(1);
+}
 
 // Database connection
 mongoose.connect(process.env.DATABASE_URL);
@@ -29,7 +34,7 @@ app.use(
   })
 );
 
-// start Task scheduler 
+// start Task scheduler
 (async function () {
   await agenda.start();
 })();

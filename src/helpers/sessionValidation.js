@@ -6,7 +6,7 @@ const { MAX_FILE_COUNT } = require("../configs/serverConfig");
 /**
  * Checks if the session Id format complies with MongoDB's ObjectId format.
  * sends a 400 response if the format is invalid.
- * 
+ *
  * @param {string} sessionId
  * @returns true if the session Id format is valid and false otherwise
  */
@@ -22,7 +22,8 @@ const isValidSessionIdFormat = (res, sessionId) => {
 /**
  * Check if the session exists within MongoDB
  * @param {string} sessionId
- * @returns true if the session exists and false otherwise
+ * @returns the session document, otherwise return false, response is 
+ *          sent outside of the function using: if(!session)
  */
 const isValidSessionEntry = async (res, sessionId) => {
   try {
