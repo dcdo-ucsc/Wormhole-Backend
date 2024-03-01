@@ -1,4 +1,4 @@
-# API Documentation
+# **`Session`** endpoints
 
 ## **`POST`** /api/session/create
 
@@ -148,6 +148,8 @@ axios
 ```
 
 </details>
+
+# **`File`** endpoints
 
 ## **`POST`** /api/files/upload
 
