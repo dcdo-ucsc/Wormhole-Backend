@@ -6,7 +6,6 @@ const path = require("path");
 const { upload, multerErrorHandler } = require("../configs/multerConfig");
 const { isValidSessionEntry } = require("../helpers/sessionValidation");
 const { dupeCheck, fileExist } = require("../utils/fileValidator");
-const { authenticateToken } = require("../middlewares/sessionMiddleware");
 const {
   validateUpload,
   authIsAdmin,

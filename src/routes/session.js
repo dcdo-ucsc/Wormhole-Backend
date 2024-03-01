@@ -10,7 +10,6 @@ const {
   isValidSessionEntry,
   isValidUUIDv4,
 } = require("../helpers/sessionValidation");
-const { authenticateToken } = require("../middlewares/sessionMiddleware");
 
 const Session = require("../models/Session");
 
