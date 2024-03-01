@@ -11,6 +11,7 @@ const {
   validateUpload,
   authIsAdmin,
 } = require("../middlewares/uploadMiddleware");
+const { isAuthenticated } = require("../middlewares/downloadMiddleware");
 
 const Session = require("../models/Session");
 
@@ -69,12 +70,9 @@ router.post(
   }
 );
 
-router.get("/download/:sessionId", async (req, res) => {
-  const sessionId = req.params.sessionId;
+router.get("/download/:sessionId", isAuthenticated, async (req, res) => {
   const archive = archiver("zip");
-
-  const session = await isValidSessionEntry(res, sessionId);
-  if (!session) return;
+  const session = req.session;
 
   session.downloadCount++;
   await session.save();

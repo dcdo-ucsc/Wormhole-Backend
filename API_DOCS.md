@@ -91,6 +91,10 @@ Type of request body: **x-www-form-urlencoded**
 ### Responses
 
 - `200 OK`: User was authenticated successfully.
+- `400 Bad Request`: Invalid `sessionId` format (uuidv4).
+- `400 Bad Request`: Session not found.
+- `401 Unauthorized`: No password provided, but session requires a password.
+- `401 Unauthorized`: Invalid password.
 
 Returns a JSON object with the following fields:
 
@@ -169,6 +173,7 @@ Type of request body: **form-data**
 
 - `200 OK`: The file was uploaded successfully.
 - `400 Bad Request`: Invalid `userId` format (uuidv4).
+- `401 Unauthorized`: Expired / missing / Unauthorized accessToken.
 - `413 Payload Too Large`: The file is too large.
 - `413 Payload Too Large`: Number of files in session exceeds the limit.
 
@@ -224,6 +229,8 @@ Download files from specified session.
 ### Responses
 
 Just like the `GET` request, the response will be the file itself.
+
+- `401 Unauthorized`: Expired / missing / Unauthorized accessToken.
 
 ### `Download` Request Example
 

@@ -4,7 +4,7 @@ const fs = require("fs");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const agenda = require("../utils/agenda");
-const { SESSION_PATH } = require("../configs/serverConfig");
+const { SESSION_PATH, JWT_DOWNLOAD_AUTH_EXPIRY } = require("../configs/serverConfig");
 const {
   isValidSessionIdFormat,
   isValidSessionEntry,
@@ -49,6 +49,7 @@ router.post("/create", async (req, res) => {
 
   // schedule deletion of session
   const deletionTime = Date.now() + Number(req.body.expiry);
+  const expiresIn = Math.floor((deletionTime - Date.now()) / 1000);
   try {
     agenda.schedule(deletionTime, "delete session", {
       sessionDir,
@@ -59,7 +60,9 @@ router.post("/create", async (req, res) => {
     return res.status(500).json({ error: "Error scheduling deletion" });
   }
 
-  const accessToken = jwt.sign({ sessionId, userId }, process.env.SECRET_KEY);
+  const accessToken = jwt.sign({ sessionId, userId }, process.env.SECRET_KEY, {
+    expiresIn,
+  });
   console.log("Session created.");
 
   res.json({ sessionId, accessToken });
@@ -116,7 +119,9 @@ router.post("/auth", async (req, res) => {
     });
   }
 
-  const accessToken = jwt.sign({ sessionId }, process.env.SECRET_KEY);
+  const accessToken = jwt.sign({ sessionId }, process.env.SECRET_KEY, {
+    expiresIn: JWT_DOWNLOAD_AUTH_EXPIRY,
+  });
 
   res.json({ accessToken });
 });
@@ -125,7 +130,7 @@ router.post("/auth", async (req, res) => {
  * Retrieve the files associated with the session
  *
  */
-router.get("/files", authenticateToken, async (req, res) => {
+router.get("/getFiles", authenticateToken, async (req, res) => {
   const sessionId = req.payload.sessionId;
 
   // Retrieve the session from the database
