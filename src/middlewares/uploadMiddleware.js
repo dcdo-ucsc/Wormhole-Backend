@@ -1,4 +1,3 @@
-const jwt = require("jsonwebtoken");
 const {
   isFileCountExceeded,
 } = require("../helpers/sessionValidation");

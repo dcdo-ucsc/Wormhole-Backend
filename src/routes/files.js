@@ -109,7 +109,7 @@ router.get("/download/:sessionId", isAuthenticated, async (req, res) => {
   return res.status(404).json({ error: "No files found" });
 });
 
-router.get("/preview", authenticateToken, async (req, res) => {
+router.get("/preview", isAuthenticated, async (req, res) => {
   const sessionId = req.payload.sessionId;
   const session = await isValidSessionEntry(res, sessionId);
   if (!session) return;

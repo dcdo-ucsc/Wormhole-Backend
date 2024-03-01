@@ -10,6 +10,7 @@ const {
   isValidSessionEntry,
   isValidUUIDv4,
 } = require("../helpers/sessionValidation");
+const { isAuthenticated } = require("../middlewares/downloadMiddleware");
 
 const Session = require("../models/Session");
 
@@ -129,7 +130,7 @@ router.post("/auth", async (req, res) => {
  * Retrieve the files associated with the session
  *
  */
-router.get("/getFiles", authenticateToken, async (req, res) => {
+router.get("/getFiles", isAuthenticated, async (req, res) => {
   const sessionId = req.payload.sessionId;
 
   // Retrieve the session from the database
