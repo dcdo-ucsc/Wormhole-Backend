@@ -4,7 +4,10 @@ const fs = require("fs");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const agenda = require("../utils/agenda");
-const { SESSION_PATH, JWT_DOWNLOAD_AUTH_EXPIRY } = require("../configs/serverConfig");
+const {
+  SESSION_PATH,
+  JWT_DOWNLOAD_AUTH_EXPIRY,
+} = require("../configs/serverConfig");
 const {
   isValidSessionIdFormat,
   isValidSessionEntry,
@@ -22,7 +25,7 @@ const router = express.Router();
  *
  * */
 router.post("/create", async (req, res) => {
-  const userId = req.body.userId;
+  const userId = req.cookies.userId;
 
   // Validate uuidv4 user format
   if (!isValidUUIDv4(res, userId)) return;
@@ -48,7 +51,7 @@ router.post("/create", async (req, res) => {
   await newSession.save();
 
   // schedule deletion of session
-  const deletionTime = Date.now() + Number(req.body.expiry);
+  const deletionTime = Date.now() + Number(req.body.expiry);  // epoch time in ms
   const expiresIn = Math.floor((deletionTime - Date.now()) / 1000);
   try {
     agenda.schedule(deletionTime, "delete session", {
@@ -63,8 +66,17 @@ router.post("/create", async (req, res) => {
   const accessToken = jwt.sign({ sessionId, userId }, process.env.SECRET_KEY, {
     expiresIn,
   });
-  console.log("Session created.");
 
+  /* Set cookie for the session Owner
+     name: token_<sessionId>
+     val : accessToken
+  */
+  res.cookie(`token_${sessionId}`, accessToken, {
+    // httpOnly: true,
+    maxAge: req.body.expiry,
+  });
+
+  console.log("Session created.");
   res.json({ sessionId, accessToken });
 });
 
@@ -110,17 +122,26 @@ router.post("/auth", async (req, res) => {
         error: "You don't have permission to access this file on this server.",
       });
     }
-  }
-
-  // check if password is correct
-  if (!(await bcrypt.compare(req.body.password, session.password))) {
-    return res.status(401).json({
-      error: "Invalid password",
-    });
+    // check if password is correct
+    if (!(await bcrypt.compare(req.body.password, session.password))) {
+      return res.status(401).json({
+        error: "Invalid password",
+      });
+    }
   }
 
   const accessToken = jwt.sign({ sessionId }, process.env.SECRET_KEY, {
     expiresIn: JWT_DOWNLOAD_AUTH_EXPIRY,
+  });
+
+  // FIXME: accessTokens are stored in cookies
+  /* Set cookie for the user
+     name: token_<sessionId>
+     val : accessToken
+  */
+  res.cookie(`token_${sessionId}`, accessToken, {
+    // httpOnly: true,
+    maxAge: req.body.expiry,
   });
 
   res.json({ accessToken });

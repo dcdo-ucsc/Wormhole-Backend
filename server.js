@@ -3,16 +3,16 @@ const express = require("express");
 const app = express();
 const mongoose = require("mongoose");
 const cors = require("cors");
-const path = require("path");
+const cookieParser = require("cookie-parser");
 const agenda = require("./src/utils/agenda");
 const bodyParser = require("body-parser");
 const fs = require("fs");
 
 const { SESSION_PATH } = require("./src/configs/serverConfig");
 
-const fileRouter = require("./src/routes/files");
+const userRouter = require("./src/routes/user");
 const sessionRouter = require("./src/routes/session");
-const home = require("./src/routes/home");
+const fileRouter = require("./src/routes/files");
 
 // DEV - Agenda dashboard (for monitoring tasks)
 let Agendash = require("agendash");
@@ -31,6 +31,7 @@ mongoose.connect(process.env.DATABASE_URL);
 app.use(
   cors({
     origin: "http://localhost:5173", // Allow only the frontend URL
+    credentials: true, // Allow cookies to be sent from the frontend
   })
 );
 
@@ -41,6 +42,7 @@ app.use(
 
 /* Middlewares */
 app.use(bodyParser.json());
+app.use(cookieParser());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // Error handling
@@ -53,13 +55,13 @@ app.use(function (err, req, res, next) {
 });
 
 /* Routes */
-app.use("/home", home);
+app.use("/api/user", userRouter);
 app.use("/api/session", sessionRouter);
 app.use("/api/files", fileRouter);
 
 // Home
 app.get("/", (req, res) => {
-  res.send("Welcome to the File Upload API");
+  res.send("WormHole API home");
 });
 
 // Create a directory for session files if it doesn't exist
