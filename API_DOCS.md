@@ -1,4 +1,26 @@
+<!-- ------------------------------------------------------ -->
+
+# **`User`** endpoints
+
+<!-- ------------------------------------------------------ -->
+
+## **`GET`** /api/user/generate
+
+Generates a new user ID.
+
+### Cookies
+
+- `uuid` (optional): Checks if user already has a `userId` stored.
+
+### Responses
+
+- `200 OK`: The user ID was generated successfully or user already has `userId`.
+
+<!-- ------------------------------------------------------ -->
+
 # **`Session`** endpoints
+
+<!-- ------------------------------------------------------ -->
 
 ## **`POST`** /api/session/create
 
@@ -8,7 +30,11 @@
 > [!IMPORTANT]  
 > The `accessToken` here is only for the session owner. It is used to upload files. They don't need to authenticate with /api/session/auth.
 
-This endpoint allows the creation of a new session.
+Creates a new session.
+
+### Cookies
+
+- `userId` : Used to check if user is session owner.
 
 ### Request Body
 
@@ -16,15 +42,13 @@ Type of request body: **x-www-form-urlencoded**
 
 | Parameters |  Type  |               Description                | Required? | Default |
 | :--------: | :----: | :--------------------------------------: | :-------: | :-----: |
-|   userId   | string | User who created the session (uploading) |    Yes    |   N/A   |
 |   expiry   | number | Time before session deletion (in **ms**) |    Yes    |   N/A   |
 |  password  | string |         Password for the session         |    No     |   ""    |
 
 ### Responses
 
 - `200 OK`: The session was created successfully.
-
-Returns a JSON object with the following fields:
+Also sets a cookie with the `accessToken` for the user linked to the sessionId.
 
 ```
 {
@@ -32,6 +56,7 @@ Returns a JSON object with the following fields:
   "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzZXNzaW9uSWQiOiI2NWU"
 }
 ```
+
 
 - `500 Internal Server Error`: An error occurred while creating the session.
 
@@ -71,6 +96,7 @@ axios
 ```
 
 </details>
+<!-- ------------------------------------------------------ -->
 
 ## **`POST`** /api/session/auth
 
@@ -91,12 +117,7 @@ Type of request body: **x-www-form-urlencoded**
 ### Responses
 
 - `200 OK`: User was authenticated successfully.
-- `400 Bad Request`: Invalid `sessionId` format (uuidv4).
-- `400 Bad Request`: Session not found.
-- `401 Unauthorized`: No password provided, but session requires a password.
-- `401 Unauthorized`: Invalid password.
-
-Returns a JSON object with the following fields:
+  Sets a cookie with the `accessToken` for the user linked to the sessionId.
 
 ```
 {
@@ -104,9 +125,12 @@ Returns a JSON object with the following fields:
 }
 ```
 
+- `400 Bad Request`: Invalid `sessionId` format (uuidv4).
+- `400 Bad Request`: Session not found.
+
 When a session requires a password but:
 
-1. No password field is provided:
+1. No password field is provided, but session requires a password:
    - `401 Unauthorized`: Forbidden message.
 2. Password field is provided, but password is correct or empty:
    - `401 Unauthorized`: Invalid password.
@@ -148,8 +172,11 @@ axios
 ```
 
 </details>
+<!-- ------------------------------------------------------ -->
 
 # **`File`** endpoints
+
+<!-- ------------------------------------------------------ -->
 
 ## **`POST`** /api/files/upload
 
@@ -161,7 +188,7 @@ Upload files to a specified session.
 
 ### Headers
 
-- `Authorization`: The access token obtained from `/api/session/auth` or `/api/session/create`.
+- `Authorization`: The `accessToken` obtained from `/api/session/auth` or `/api/session/create`.
 
 ### Request Body
 
@@ -219,14 +246,19 @@ axios
 ```
 
 </details>
+<!-- ------------------------------------------------------ -->
 
 ## **`GET`** /api/files/download
 
 Download files from specified session.
 
+### Parameters
+
+- `sessionId` (query): The session ID to download files from.
+
 ### Headers
 
-- `Authorization`: The access token obtained from `/api/session/auth` or `/api/session/create`.
+- `Authorization`: The `accessToken` obtained from `/api/session/auth` or `/api/session/create`.
 
 ### Responses
 
@@ -244,17 +276,20 @@ import axios from "axios";
 import qs from "qs";
 
 let config = {
-  method: 'get',
+  method: "get",
   maxBodyLength: Infinity,
-  url: 'http://localhost:9001/api/files/download/65e02cdedf0cfc1310e0b26f',
-  headers: { },
+  url: "http://localhost:9001/api/files/download/65e02cdedf0cfc1310e0b26f",
+  headers: {},
 };
 
-axios.request(config)
-.then((response) => {
-  console.log(JSON.stringify(response.data));
-})
-.catch((error) => {
-  console.log(error);
-});
+axios
+  .request(config)
+  .then((response) => {
+    console.log(JSON.stringify(response.data));
+  })
+  .catch((error) => {
+    console.log(error);
+  });
 ```
+
+<!-- ------------------------------------------------------ -->
