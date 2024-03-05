@@ -34,46 +34,9 @@ mongoose.connection.on('error', err => {
   console.error('Mongoose initial connection error:', err);
 });
 
-app.use(
-  cors({
-    origin: "http://localhost:5173", // Allow only the frontend URL
-  })
-);
-
-// start Task scheduler 
-(async function () {
-  await agenda.start();
-})();
-
-/* Middlewares */
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
-
-// Error handling
-app.use(function (err, req, res, next) {
-  if (err) {
-    res.status(500).json({ error: err.message });
-  } else {
-    next();
-  }
-});
-
-/* Routes */
-app.use("/home", home);
-app.use("/api/session", sessionRouter);
-app.use("/api/files", fileRouter);
-app.use('/assets', express.static( path.join(__dirname, 'dist','assets')))
-
-// Home
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, 'dist', 'index.html'))
-});
-app.get("/session", (req, res) => {
-  res.sendFile(path.join(__dirname, 'dist', 'index.html'))
-});
-app.get("/join", (req, res) => {
-  res.sendFile(path.join(__dirname, 'dist', 'index.html'))
-});
+app.use(cors({
+  origin: 'http://localhost:5173' // Allow only the frontend URL
+}));
 
 // Create a directory for session files if it doesn't exist
 if (!fs.existsSync(SESSION_PATH)) {

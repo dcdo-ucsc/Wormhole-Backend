@@ -3,4 +3,10 @@ node_modules/
 uploads/
 .env
 .vscode/
+<<<<<<< HEAD
 sessions/
+=======
+sessions/
+*Docker*
+compose.yaml
+>>>>>>> 4f765a4b92c97fa78598ab0b8938fe2b6b84d66c
