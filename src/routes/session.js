@@ -14,7 +14,6 @@ const {
   isValidUUIDv4,
 } = require("../helpers/sessionValidation");
 const { isAuthenticated } = require("../middlewares/downloadMiddleware");
-const { authenticateToken } = require("../middlewares/sessionMiddleware");
 
 const Session = require("../models/Session");
 
@@ -28,7 +27,7 @@ const QRCode = require("qrcode");
  *
  * */
 router.post("/create", async (req, res) => {
-  const userId = req.body.userId;
+  const userId = req.cookies.userId;
   const deletionTime = Date.now() + Number(req.body.expiry);
 
   // Validate uuidv4 user format

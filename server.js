@@ -11,6 +11,7 @@ const fs = require("fs");
 const connectDB = require("./db");
 const { SESSION_PATH } = require("./src/configs/serverConfig");
 
+const userRouter = require("./src/routes/user");
 const fileRouter = require("./src/routes/files");
 const sessionRouter = require("./src/routes/session");
 const home = require("./src/routes/home");
@@ -52,6 +53,7 @@ app.use(function (err, req, res, next) {
 
 /* Routes */
 app.use("/home", home);
+app.use("/api/user", userRouter);
 app.use("/api/session", sessionRouter);
 app.use("/api/files", fileRouter);
 app.use("/assets", express.static(path.join(__dirname, "dist", "assets")));
