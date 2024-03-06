@@ -6,8 +6,11 @@ const path = require("path");
 const { upload, multerErrorHandler } = require("../configs/multerConfig");
 const { isValidSessionEntry } = require("../helpers/sessionValidation");
 const { dupeCheck, fileExist } = require("../utils/fileValidator");
-const { authenticateToken } = require("../middlewares/sessionMiddleware");
-const { validateUpload, authIsAdmin } = require("../middlewares/uploadMiddleware");
+const {
+  validateUpload,
+  authIsAdmin,
+} = require("../middlewares/uploadMiddleware");
+const { isAuthenticated } = require("../middlewares/downloadMiddleware");
 
 const Session = require("../models/Session");
 
@@ -61,11 +64,9 @@ router.post(
   }
 );
 
-router.get("/download/:sessionId", async (req, res) => {
-  const sessionId = req.params.sessionId;
+router.get("/download/:sessionId", isAuthenticated, async (req, res) => {
   const archive = archiver("zip");
-
-  const session = await isValidSessionEntry(res, sessionId);
+  const session = req.session;
 
   session.downloadCount++;
   await session.save();
@@ -87,7 +88,9 @@ router.get("/download/:sessionId", async (req, res) => {
     res.attachment("files.zip");
     archive.pipe(res);
     archive.finalize();
-  } else {
+    return;
+
+  } else if (session.files.length == 1) {
     // download the file if there's only one
     const file = session.files[0];
     const filePath = path.join(session.directory, file.fileName);
@@ -95,17 +98,21 @@ router.get("/download/:sessionId", async (req, res) => {
     if (!fileExist(filePath, res)) return;
 
     res.download(filePath, file.originalName);
+    return;
   }
+  // No files found
+  return res.status(404).json({ error: "No files found" });
 });
 
-router.get("/preview", authenticateToken, async (req, res) => {
+router.get("/preview", isAuthenticated, async (req, res) => {
   const sessionId = req.payload.sessionId;
   const session = await isValidSessionEntry(res, sessionId);
+  if (!session) return;
 
   if (session.files.length > 1) {
     // For multiple files, you might want to send a list of file names or some other summary data
     // because it's not practical to preview multiple files at once
-    const fileNames = session.files.map(file => file.originalName);
+    const fileNames = session.files.map((file) => file.originalName);
     res.json(fileNames);
   } else {
     // For a single file, you can send the file data for preview
