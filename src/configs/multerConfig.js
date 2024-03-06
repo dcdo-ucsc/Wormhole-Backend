@@ -7,11 +7,6 @@ const { SIZE_LIMIT, SESSION_PATH, MAX_FILE_COUNT } = require("./serverConfig");
 const storage = multer.diskStorage({
   destination: async function (req, file, cb) {
     const sessionId = req.payload.sessionId;
-<<<<<<< HEAD
-    // const sessionId = req.params.sessionId;
-
-=======
->>>>>>> 4f765a4b92c97fa78598ab0b8938fe2b6b84d66c
     const dir = path.join(SESSION_PATH, sessionId);
 
     cb(null, dir);
