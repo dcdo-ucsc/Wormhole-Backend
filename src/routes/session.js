@@ -1,22 +1,26 @@
 const express = require("express");
 const path = require("path");
 const fs = require("fs");
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const agenda = require("../utils/agenda");
-const { SESSION_PATH } = require("../configs/serverConfig");
+const {
+  SESSION_PATH,
+  JWT_DOWNLOAD_AUTH_EXPIRY,
+} = require("../configs/serverConfig");
 const {
   isValidSessionIdFormat,
   isValidSessionEntry,
   isValidUUIDv4,
 } = require("../helpers/sessionValidation");
+const { isAuthenticated } = require("../middlewares/downloadMiddleware");
 const { authenticateToken } = require("../middlewares/sessionMiddleware");
 
 const Session = require("../models/Session");
 
 const router = express.Router();
 
-const QRCode = require('qrcode');
+const QRCode = require("qrcode");
 
 /** Endpoint to create a new session, scheduled for deletion after a certain time
  *
@@ -26,8 +30,6 @@ const QRCode = require('qrcode');
 router.post("/create", async (req, res) => {
   const userId = req.body.userId;
   const deletionTime = Date.now() + Number(req.body.expiry);
-
-  console.log(deletionTime);
 
   // Validate uuidv4 user format
   if (!isValidUUIDv4(res, userId)) return;
@@ -49,11 +51,12 @@ router.post("/create", async (req, res) => {
   if (req.body.password && req.body.password !== "") {
     newSession.password = await bcrypt.hash(req.body.password, 10);
   }
-  
+
   // Save the session to MongoDB
   await newSession.save();
 
   // Schedule deletion of session
+  const expiresIn = Math.floor((deletionTime - Date.now()) / 1000);
   try {
     agenda.schedule(deletionTime, "delete session", {
       sessionDir,
@@ -64,16 +67,35 @@ router.post("/create", async (req, res) => {
     return res.status(500).json({ error: "Error scheduling deletion" });
   }
 
+  // Generate the QR code URL for this session
+  const sessionUrl = `${req.protocol}://${req.get(
+    "host"
+  )}/api/session/${sessionId}`;
+
   // Generate a QR code
-  const sessionUrl = `${req.protocol}://${req.get('host')}/api/session/${sessionId}`; // Adjust this URL as needed
   QRCode.toDataURL(sessionUrl, function (err, qrCodeDataURL) {
     if (err) {
-      console.error('Error generating QR code:', err);
-      return res.status(500).json({ error: 'Error generating QR code' });
+      console.error("Error generating QR code:", err);
+      return res.status(500).json({ error: "Error generating QR code" });
     }
 
-    // Sign a JWT
-    const accessToken = jwt.sign({ sessionId, userId }, process.env.SECRET_KEY);
+    // Create an access token for the session
+    const accessToken = jwt.sign(
+      { sessionId, userId },
+      process.env.SECRET_KEY,
+      {
+        expiresIn,
+      }
+    );
+
+    /* Set cookie for the session Owner
+     name: token_<sessionId>
+     val : accessToken
+  */
+    res.cookie(`token_${sessionId}`, accessToken, {
+      // httpOnly: true,
+      maxAge: req.body.expiry,
+    });
 
     // Respond with session info, including the QR code data URL and expiration time
     res.json({
@@ -100,19 +122,21 @@ router.get("/:sessionId", async (req, res) => {
   if (!session) return;
 
   // Generate the QR code URL again for this session
-  const sessionUrl = `${req.protocol}://${req.get('host')}/api/session/${sessionId}`;
+  const sessionUrl = `${req.protocol}://${req.get(
+    "host"
+  )}/api/session/${sessionId}`;
   QRCode.toDataURL(sessionUrl, function (err, qrCodeDataURL) {
     if (err) {
-      console.error('Error generating QR code:', err);
-      return res.status(500).json({ error: 'Error generating QR code' });
+      console.error("Error generating QR code:", err);
+      return res.status(500).json({ error: "Error generating QR code" });
     }
 
     // Respond with session info, including the QR code data URL
-    res.json({ 
-      sessionId, 
+    res.json({
+      sessionId,
       qrCodeDataURL,
       deletionTime: session.deletionTime,
-      password: session.password != null 
+      password: session.password != null,
     });
   });
 });
@@ -142,16 +166,26 @@ router.post("/auth", async (req, res) => {
         error: "You don't have permission to access this file on this server.",
       });
     }
+    // check if password is correct
+    if (!(await bcrypt.compare(req.body.password, session.password))) {
+      return res.status(401).json({
+        error: "Invalid password",
+      });
+    }
   }
 
-  // check if password is correct
-  if (!(await bcrypt.compare(req.body.password, session.password))) {
-    return res.status(401).json({
-      error: "Invalid password",
-    });
-  }
+  const accessToken = jwt.sign({ sessionId }, process.env.SECRET_KEY, {
+    expiresIn: JWT_DOWNLOAD_AUTH_EXPIRY,
+  });
 
-  const accessToken = jwt.sign({ sessionId }, process.env.SECRET_KEY);
+  /* Set cookie for the user
+     name: token_<sessionId>
+     val : accessToken
+  */
+  res.cookie(`token_${sessionId}`, accessToken, {
+    // httpOnly: true,
+    maxAge: req.body.expiry,
+  });
 
   res.json({ accessToken });
 });
@@ -160,7 +194,7 @@ router.post("/auth", async (req, res) => {
  * Retrieve the files associated with the session
  *
  */
-router.get("/files", authenticateToken, async (req, res) => {
+router.get("/getFiles", isAuthenticated, async (req, res) => {
   const sessionId = req.payload.sessionId;
 
   // Retrieve the session from the database
