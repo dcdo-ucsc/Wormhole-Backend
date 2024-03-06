@@ -6,11 +6,7 @@ const { MAX_FILE_COUNT } = require("../configs/serverConfig");
 /**
  * Checks if the session Id format complies with MongoDB's ObjectId format.
  * sends a 400 response if the format is invalid.
-<<<<<<< HEAD
- * 
-=======
  *
->>>>>>> 4f765a4b92c97fa78598ab0b8938fe2b6b84d66c
  * @param {string} sessionId
  * @returns true if the session Id format is valid and false otherwise
  */
@@ -26,12 +22,8 @@ const isValidSessionIdFormat = (res, sessionId) => {
 /**
  * Check if the session exists within MongoDB
  * @param {string} sessionId
-<<<<<<< HEAD
- * @returns true if the session exists and false otherwise
-=======
  * @returns the session document, otherwise return false, response is
  *          sent outside of the function using: if(!session)
->>>>>>> 4f765a4b92c97fa78598ab0b8938fe2b6b84d66c
  */
 const isValidSessionEntry = async (res, sessionId) => {
   try {
@@ -51,16 +43,6 @@ const isValidSessionEntry = async (res, sessionId) => {
 /**
  * check if # of files in session exceeds limit
  * */
-<<<<<<< HEAD
-const isFileCountExceeded = async (res, sessionId) => {
-  // const files = fs.readdirSync(dir);
-  // if (files.length >= MAX_FILE_COUNT) {
-  //   res.status(413).json({ error: "File count limit exceeded" });
-  // }
-  const session = await Session.findById({ _id: sessionId });
-  if (session.totalFiles >= MAX_FILE_COUNT) {
-    res.status(413).json({ error: "Maximum file count exceeded" });
-=======
 const isFileCountExceeded = async (req, res, sessionId) => {
   const session = await Session.findById({ _id: sessionId });
   const sessionCount = session.totalFiles;
@@ -77,7 +59,6 @@ const isFileCountExceeded = async (req, res, sessionId) => {
     res
       .status(413)
       .json({ error: `You can only upload ${allowedFiles} file(s)` });
->>>>>>> 4f765a4b92c97fa78598ab0b8938fe2b6b84d66c
     return true;
   }
   return false;
