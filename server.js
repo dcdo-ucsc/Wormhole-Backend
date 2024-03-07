@@ -20,7 +20,7 @@ const home = require("./src/routes/home");
 let Agendash = require("agendash");
 app.use("/dash", Agendash(agenda));
 
-const port = process.env.PORT;
+const port = process.env.PORT || 3000;
 
 // Database connection
 connectDB();
