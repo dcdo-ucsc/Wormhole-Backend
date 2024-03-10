@@ -68,7 +68,7 @@ router.get("/download", isAuthenticated, async (req, res) => {
   const session = req.session;
 
   // Set the header
-  res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition');
+  res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition', 'Content-Type');
   
   session.downloadCount++;
   await session.save();
