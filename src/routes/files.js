@@ -67,6 +67,9 @@ router.get("/download", isAuthenticated, async (req, res) => {
   const archive = archiver("zip");
   const session = req.session;
 
+  // Set the header
+  res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition');
+  
   session.downloadCount++;
   await session.save();
 
