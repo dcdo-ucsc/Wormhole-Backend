@@ -17,7 +17,7 @@ const SessionSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  createdAt: {
+  deletionTime: {
     type: Date,
     required: true,
     default: Date.now,
