@@ -27,7 +27,8 @@ connectDB();
 
 app.use(
   cors({
-    origin: "http://localhost:5173", // Allow only the frontend URL
+    origin: true, // Allow any URL
+    // origin: "http://localhost:5173", // Allow only the frontend URL
     credentials: true, // Allow cookies to be sent from the frontend
   })
 );

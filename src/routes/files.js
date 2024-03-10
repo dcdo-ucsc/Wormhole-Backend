@@ -63,7 +63,7 @@ router.post(
   }
 );
 
-router.get("/download/:sessionId", isAuthenticated, async (req, res) => {
+router.get("/download", isAuthenticated, async (req, res) => {
   const archive = archiver("zip");
   const session = req.session;
 
