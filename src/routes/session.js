@@ -88,9 +88,9 @@ router.post("/create", async (req, res) => {
     );
 
     /* Set cookie for the session Owner
-     name: token_<sessionId>
-     val : accessToken
-  */
+      name: token_<sessionId>
+      val : accessToken
+    */
     res.cookie(`token_${sessionId}`, accessToken, {
       // httpOnly: true,
       maxAge: req.body.expiry,
@@ -105,6 +105,47 @@ router.post("/create", async (req, res) => {
     });
   });
 });
+
+const mongoose = require("mongoose");
+
+router.get("/data/:sessionId", async (req, res) => {
+  const { sessionId } = req.params;
+
+  try {
+    // Fetch session from the database using the session ID
+    const sessionData = await Session.findById(sessionId);
+
+    // Check if the session exists
+    if (!sessionData) {
+      return res.status(404).json({ error: "Session not found" });
+    }
+
+    // Generate the QR code URL for this session
+    const sessionUrl = `${req.protocol}://${req.get("host")}/api/session/${sessionId}`;
+
+    // Generate a QR code
+    QRCode.toDataURL(sessionUrl, function (err, qrCodeDataURL) {
+      if (err) {
+        console.error("Error generating QR code:", err);
+        return res.status(500).json({ error: "Error generating QR code" });
+      }
+
+      const deletionTime = sessionData.deletionTime;
+
+      // Respond with session info, including QR code data URL and calculated deletion time
+      res.json({
+        sessionId: sessionData._id,
+        qrCodeDataURL,
+        deletionTime,
+        // Include any other session details you want to return
+      });
+    });
+  } catch (error) {
+    console.error("Error fetching session data:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 
 /**
  * Link for QR code. When the user creates the session, the front-end
