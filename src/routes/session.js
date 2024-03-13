@@ -71,38 +71,30 @@ router.post('/create', async (req, res) => {
     'host'
   )}/api/session/${sessionId}`;
 
-  // Generate a QR code
-  QRCode.toDataURL(sessionUrl, function (err, qrCodeDataURL) {
-    if (err) {
-      console.error('Error generating QR code:', err);
-      return res.status(500).json({ error: 'Error generating QR code' });
+
+  // Create an access token for the session
+  const accessToken = jwt.sign(
+    { sessionId, userId },
+    process.env.SECRET_KEY,
+    {
+      expiresIn,
     }
+  );
 
-    // Create an access token for the session
-    const accessToken = jwt.sign(
-      { sessionId, userId },
-      process.env.SECRET_KEY,
-      {
-        expiresIn,
-      }
-    );
+  /* Set cookie for the session Owner
+    name: token_owner_<sessionId>
+    val : accessToken
+  */
+  res.cookie(`token_owner_${sessionId}`, accessToken, {
+    // httpOnly: true,
+    maxAge: req.body.expiry,
+  });
 
-    /* Set cookie for the session Owner
-      name: token_owner_<sessionId>
-      val : accessToken
-    */
-    res.cookie(`token_owner_${sessionId}`, accessToken, {
-      // httpOnly: true,
-      maxAge: req.body.expiry,
-    });
-
-    // Respond with session info, including the QR code data URL and expiration time
-    res.json({
-      sessionId,
-      accessToken,
-      qrCodeDataURL,
-      deletionTime,
-    });
+  // Respond with session info, including the QR code data URL and expiration time
+  res.json({
+    sessionId,
+    accessToken,
+    deletionTime,
   });
 });
 
@@ -146,40 +138,6 @@ router.get('/data/:sessionId', async (req, res) => {
     console.error('Error fetching session data:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
-});
-
-/**
- * Link for QR code. When the user creates the session, the front-end
- * should create the link for the QR code given the sessionId from sessionCreate.
- *
- * returns the sessionId & password status
- */
-router.get('/:sessionId', async (req, res) => {
-  const sessionId = req.params.sessionId;
-
-  if (!isValidSessionIdFormat(res, sessionId)) return;
-
-  const session = await isValidSessionEntry(res, sessionId);
-  if (!session) return;
-
-  // Generate the QR code URL again for this session
-  const sessionUrl = `${req.protocol}://${req.get(
-    'host'
-  )}/api/session/${sessionId}`;
-  QRCode.toDataURL(sessionUrl, function (err, qrCodeDataURL) {
-    if (err) {
-      console.error('Error generating QR code:', err);
-      return res.status(500).json({ error: 'Error generating QR code' });
-    }
-
-    // Respond with session info, including the QR code data URL
-    res.json({
-      sessionId,
-      qrCodeDataURL,
-      deletionTime: session.deletionTime,
-      password: session.password != null,
-    });
-  });
 });
 
 /**
