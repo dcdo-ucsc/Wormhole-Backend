@@ -1,32 +1,32 @@
-const express = require("express");
-const path = require("path");
-const fs = require("fs");
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
-const agenda = require("../utils/agenda");
+const express = require('express');
+const path = require('path');
+const fs = require('fs');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const agenda = require('../utils/agenda');
 const {
   SESSION_PATH,
   JWT_DOWNLOAD_AUTH_EXPIRY,
-} = require("../configs/serverConfig");
+} = require('../configs/serverConfig');
 const {
   isValidSessionIdFormat,
   isValidSessionEntry,
   isValidUUIDv4,
-} = require("../helpers/sessionValidation");
-const { isAuthenticated } = require("../middlewares/downloadMiddleware");
+} = require('../helpers/sessionValidation');
+const { isAuthenticated } = require('../middlewares/downloadMiddleware');
 
-const Session = require("../models/Session");
+const Session = require('../models/Session');
 
 const router = express.Router();
 
-const QRCode = require("qrcode");
+const QRCode = require('qrcode');
 
 /** Endpoint to create a new session, scheduled for deletion after a certain time
  *
  *  @name POST /api/session
  *
  * */
-router.post("/create", async (req, res) => {
+router.post('/create', async (req, res) => {
   const userId = req.cookies.userId;
   const deletionTime = Date.now() + Number(req.body.expiry);
 
@@ -47,7 +47,7 @@ router.post("/create", async (req, res) => {
   fs.mkdirSync(sessionDir); // Create a directory for the session
 
   // If password is provided, hash it and save to db
-  if (req.body.password && req.body.password !== "") {
+  if (req.body.password && req.body.password !== '') {
     newSession.password = await bcrypt.hash(req.body.password, 10);
   }
 
@@ -57,25 +57,25 @@ router.post("/create", async (req, res) => {
   // Schedule deletion of session
   const expiresIn = Math.floor((deletionTime - Date.now()) / 1000);
   try {
-    agenda.schedule(deletionTime, "delete session", {
+    agenda.schedule(deletionTime, 'delete session', {
       sessionDir,
       sessionId,
     });
   } catch (err) {
-    console.error("Error scheduling deletion: ", err);
-    return res.status(500).json({ error: "Error scheduling deletion" });
+    console.error('Error scheduling deletion: ', err);
+    return res.status(500).json({ error: 'Error scheduling deletion' });
   }
 
   // Generate the QR code URL for this session
   const sessionUrl = `${req.protocol}://${req.get(
-    "host"
+    'host'
   )}/api/session/${sessionId}`;
 
   // Generate a QR code
   QRCode.toDataURL(sessionUrl, function (err, qrCodeDataURL) {
     if (err) {
-      console.error("Error generating QR code:", err);
-      return res.status(500).json({ error: "Error generating QR code" });
+      console.error('Error generating QR code:', err);
+      return res.status(500).json({ error: 'Error generating QR code' });
     }
 
     // Create an access token for the session
@@ -88,10 +88,10 @@ router.post("/create", async (req, res) => {
     );
 
     /* Set cookie for the session Owner
-      name: token_<sessionId>
+      name: token_owner_<sessionId>
       val : accessToken
     */
-    res.cookie(`token_${sessionId}`, accessToken, {
+    res.cookie(`token_owner_${sessionId}`, accessToken, {
       // httpOnly: true,
       maxAge: req.body.expiry,
     });
@@ -106,9 +106,9 @@ router.post("/create", async (req, res) => {
   });
 });
 
-const mongoose = require("mongoose");
+const mongoose = require('mongoose');
 
-router.get("/data/:sessionId", async (req, res) => {
+router.get('/data/:sessionId', async (req, res) => {
   const { sessionId } = req.params;
 
   try {
@@ -117,17 +117,19 @@ router.get("/data/:sessionId", async (req, res) => {
 
     // Check if the session exists
     if (!sessionData) {
-      return res.status(404).json({ error: "Session not found" });
+      return res.status(404).json({ error: 'Session not found' });
     }
 
     // Generate the QR code URL for this session
-    const sessionUrl = `${req.protocol}://${req.get("host")}/api/session/${sessionId}`;
+    const sessionUrl = `${req.protocol}://${req.get(
+      'host'
+    )}/api/session/${sessionId}`;
 
     // Generate a QR code
     QRCode.toDataURL(sessionUrl, function (err, qrCodeDataURL) {
       if (err) {
-        console.error("Error generating QR code:", err);
-        return res.status(500).json({ error: "Error generating QR code" });
+        console.error('Error generating QR code:', err);
+        return res.status(500).json({ error: 'Error generating QR code' });
       }
 
       const deletionTime = sessionData.deletionTime;
@@ -141,11 +143,10 @@ router.get("/data/:sessionId", async (req, res) => {
       });
     });
   } catch (error) {
-    console.error("Error fetching session data:", error);
-    res.status(500).json({ error: "Internal server error" });
+    console.error('Error fetching session data:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
-
 
 /**
  * Link for QR code. When the user creates the session, the front-end
@@ -153,7 +154,7 @@ router.get("/data/:sessionId", async (req, res) => {
  *
  * returns the sessionId & password status
  */
-router.get("/:sessionId", async (req, res) => {
+router.get('/:sessionId', async (req, res) => {
   const sessionId = req.params.sessionId;
 
   if (!isValidSessionIdFormat(res, sessionId)) return;
@@ -163,12 +164,12 @@ router.get("/:sessionId", async (req, res) => {
 
   // Generate the QR code URL again for this session
   const sessionUrl = `${req.protocol}://${req.get(
-    "host"
+    'host'
   )}/api/session/${sessionId}`;
   QRCode.toDataURL(sessionUrl, function (err, qrCodeDataURL) {
     if (err) {
-      console.error("Error generating QR code:", err);
-      return res.status(500).json({ error: "Error generating QR code" });
+      console.error('Error generating QR code:', err);
+      return res.status(500).json({ error: 'Error generating QR code' });
     }
 
     // Respond with session info, including the QR code data URL
@@ -188,7 +189,7 @@ router.get("/:sessionId", async (req, res) => {
  * check password
  * send 200 res & send auth token
  */
-router.post("/auth", async (req, res) => {
+router.post('/auth', async (req, res) => {
   // const userId = req.body.userId;
   const sessionId = req.body.sessionId;
 
@@ -209,7 +210,7 @@ router.post("/auth", async (req, res) => {
     // check if password is correct
     if (!(await bcrypt.compare(req.body.password, session.password))) {
       return res.status(401).json({
-        error: "Invalid password",
+        error: 'Invalid password',
       });
     }
   }
@@ -219,10 +220,10 @@ router.post("/auth", async (req, res) => {
   });
 
   /* Set cookie for the user
-     name: token_<sessionId>
+     name: token_user_<sessionId>
      val : accessToken
   */
-  res.cookie(`token_${sessionId}`, accessToken, {
+  res.cookie(`token_user_${sessionId}`, accessToken, {
     // httpOnly: true,
     maxAge: req.body.expiry,
   });
@@ -231,28 +232,30 @@ router.post("/auth", async (req, res) => {
 });
 
 /**
- * Retrieve the files associated with the session
+ * Retrieve the file names in the session for file preview
  *
  */
-router.get("/getFiles", isAuthenticated, async (req, res) => {
-  const sessionId = req.payload.sessionId;
+router.get('/getFileNames/:sessionId', async (req, res) => {
+  const { sessionId } = req.params;
 
   // Retrieve the session from the database
   const session = await Session.findById(sessionId);
 
   if (!session) {
-    return res.status(404).json({ error: "Session not found" });
+    return res.status(404).json({ error: 'Session not found' });
   }
 
   // check if there are files in the session
   if (session.files.length === 0) {
     return res.status(404).json({
-      error: "No files found in this session",
+      error: 'No files found in this session',
     });
   }
 
-  // Send the files associated with the session back to the client
-  res.json(session.files);
+  // get all file names from the DB
+  const fileNames = session.files.map((file) => file.originalName);
+  
+  res.json(fileNames);
 });
 
 module.exports = router;
