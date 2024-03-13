@@ -16,6 +16,18 @@ Generates a new user ID.
 
 - `200 OK`: The user ID was generated successfully or user already has `userId`.
 
+## **`GET`** /api/user/fetchRole
+
+Fetches the role of a user.
+
+### Cookies
+
+- `sessionToken`: Used to check if user is `owner` or `user`
+
+### Responses
+
+- `200 OK`: `userRole` string `owner` or `user`
+
 <!-- ------------------------------------------------------ -->
 
 # **`Session`** endpoints
@@ -48,18 +60,15 @@ Type of request body: **x-www-form-urlencoded**
 ### Responses
 
 - `200 OK`: The session was created successfully.
-Also sets a cookie with the `accessToken` for the user linked to the sessionId.
+- `500 Internal Server Error`: An error occurred while creating the session.
 
 ```
 {
   "sessionId": "65e01380b8c0cc733321e5b2"
   "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzZXNzaW9uSWQiOiI2NWU"
+  "deletionTime": 1710304943103
 }
 ```
-
-
-- `500 Internal Server Error`: An error occurred while creating the session.
-
 ### `Session Create` Request Example
 
 <details>
@@ -69,33 +78,48 @@ Also sets a cookie with the `accessToken` for the user linked to the sessionId.
 import axios from "axios";
 import qs from "qs";
 
-let data = qs.stringify({
-  expiry: "60000",
-  password: "123",
-  userId: "8176788d-3838-4d22-b312-5e4fbd5f051c",
-});
-
-let config = {
-  method: "post",
-  maxBodyLength: Infinity,
-  url: "http://localhost:9001/api/session/create",
-  headers: {
-    "Content-Type": "application/x-www-form-urlencoded",
-  },
-  data: data,
-};
-
-axios
-  .request(config)
-  .then((response) => {
-    console.log(JSON.stringify(response.data));
-  })
-  .catch((error) => {
-    console.log(error);
+const createSession = async (expiry, password) => {
+  let data = qs.stringify({
+    expiry,
+    password,
   });
+
+  const res = await axios.post(backend + "/api/session/create", data, {
+    withCredentials: true,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+  });
+  return res.data;
+};
 ```
 
 </details>
+<!-- ------------------------------------------------------ -->
+
+## **`GET`** /api/session/data/:sessionId
+
+Gets the necessary data for the session. Returns the QR Code, deletionTime, sessionId
+
+### Parameters
+
+- `sessionId` (query): sessionId of the session
+
+### Responses
+
+- `200 OK`: Session exists, returns necessary data of session
+
+```
+{
+  "sessionId": "65e01380b8c0cc733321e5b2"
+  "qrCodeDataURL": "data:image/png;base64,idk"
+  "deletionTime": 1710304943103
+}
+```
+
+- `404 Bad Request`: Session not found.
+- `500 Internal Error`: Unable to generate QR Code, other internal errors.
+
 <!-- ------------------------------------------------------ -->
 
 ## **`POST`** /api/session/auth
@@ -146,32 +170,46 @@ When a session requires a password but:
 import axios from "axios";
 import qs from "qs";
 
-let data = qs.stringify({
-  password: "123",
-  sessionId: "65e01380b8c0cc733321e5b2",
-});
-
-let config = {
-  method: "post",
-  maxBodyLength: Infinity,
-  url: "http://localhost:9001/api/session/auth",
-  headers: {
-    "Content-Type": "application/x-www-form-urlencoded",
-  },
-  data: data,
-};
-
-axios
-  .request(config)
-  .then((response) => {
-    console.log(JSON.stringify(response.data));
-  })
-  .catch((error) => {
-    console.log(error);
+const authSession = async (sessionId, password) => {
+  let data = qs.stringify({
+    sessionId,
+    password,
   });
+  const res = await axios.post(backend + "/api/session/auth", data, {
+    withCredentials: true,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+  });
+
+  return res.data;
+};
 ```
 
 </details>
+<!-- ------------------------------------------------------ -->
+
+## **`GET`** /api/session/getFileNames/:sessionId
+
+Returns all file names of the session
+
+### Parameters
+
+- `sessionId` (query): sessionId of the session
+
+### Responses
+
+- `200 OK`: Returns the file names in the session
+
+```
+{
+  "fileNames": [String]
+}
+```
+
+- `404 Bad Request`: No files in session
+- `404 Bad Request`: Session not found
+
 <!-- ------------------------------------------------------ -->
 
 # **`File`** endpoints
@@ -212,37 +250,27 @@ Type of request body: **form-data**
 <summary>Show Code</summary>
 
 ```javascript
-import axios from "axios";
-import qs from "qs";
-import fs from "fs";
-import FormData from "form-data";
+import axios from 'axios';
+import FormData from 'form-data';
 
-let data = new FormData();
-data.append(
-  "file",
-  fs.createReadStream("/C:/Users/Dev/Downloads/test files/test.txt")
-);
-
-let config = {
-  method: "post",
-  maxBodyLength: Infinity,
-  url: "http://localhost:9001/api/files/upload?fileCount=1",
-  headers: {
-    Authorization:
-      "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzZXNzaW9uSWQiOiI2NWUwMTM4MGI4YzBjYzczMzMyMWU1YjIiLCJ1c2VySWQiOiI4MTc2Nzg4ZC0zODM4LTRkMjItYjMxMi01ZTRmYmQ1ZjA1MWMiLCJpYXQiOjE3MDkxODM4NzJ9.TABPtQ6IWMTG7AO4HTNRXSvxaViqWk-gfyXUoxxy9-g",
-    ...data.getHeaders(),
-  },
-  data: data,
-};
-
-axios
-  .request(config)
-  .then((response) => {
-    console.log(JSON.stringify(response.data));
-  })
-  .catch((error) => {
-    console.log(error);
+const uploadFiles = async (files, sessionToken, fileCount) => {
+  let formData = new FormData();
+  files.forEach((file) => {
+    formData.append('file', file);
   });
+
+  const res = await axios.post(backend + `/api/files/upload`, formData, {
+    withCredentials: true,
+    headers: {
+      'Content-Type': 'multipart/form-data',
+      Authorization: `Bearer ${sessionToken}`,
+    },
+    params: {
+      fileCount,
+    },
+  });
+  return res.data;
+};
 ```
 
 </details>
@@ -273,23 +301,19 @@ Just like the `GET` request, the response will be the file itself.
 
 ```javascript
 import axios from "axios";
-import qs from "qs";
 
-let config = {
-  method: "get",
-  maxBodyLength: Infinity,
-  url: "http://localhost:9001/api/files/download/65e02cdedf0cfc1310e0b26f",
-  headers: {},
-};
-
-axios
-  .request(config)
-  .then((response) => {
-    console.log(JSON.stringify(response.data));
-  })
-  .catch((error) => {
-    console.log(error);
+const res = await axios.get(backend + `/api/files/download`, {
+    responseType: 'blob',
+    withCredentials: true,
+    headers: {
+      Authorization: `Bearer ${sessionToken}`,
+    },
+    params: {
+      sessionId,
+    },
   });
+  return res;
+});
 ```
 
 <!-- ------------------------------------------------------ -->
