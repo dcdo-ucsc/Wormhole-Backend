@@ -1,18 +1,20 @@
-const {
-  isFileCountExceeded,
-} = require("../helpers/sessionValidation");
-const { authIsUser } = require("../middlewares/authMiddleware");
+const { isFileCountExceeded } = require('../helpers/sessionValidation');
+const { verifyJwtToken } = require('../helpers/jwtHelper');
 
 /**
- * Middleware to authenticate the user's token
+ * Checks if the user is the owner of the session
+ * 
+ * Used only for the upload endpoint (owner of the session)
+ * Only the session owner has the userId in the token payload
+ *
  */
-const authIsAdmin = async (req, res, next) => {
-  const payload = await authIsUser(req, res);
-  // check if user is the owner of the session
+const authIsOwner = async (req, res, next) => {
+  const payload = await verifyJwtToken(req, res);
+  // check if user is the owner of the session using the userId
   if (!payload.userId || payload.userId !== req.session.userId) {
     return res
       .status(401)
-      .json({ error: "Unauthorized: Not the owner of session" });
+      .json({ error: 'Unauthorized: Not the owner of session' });
   }
 
   // save the payload to the req object
@@ -20,7 +22,7 @@ const authIsAdmin = async (req, res, next) => {
   next();
 };
 
-// Middleware for checking session / file upload
+// checks the session before uploading files
 const validateUpload = async (req, res, next) => {
   const sessionId = req.payload.sessionId;
 
@@ -29,4 +31,4 @@ const validateUpload = async (req, res, next) => {
   next();
 };
 
-module.exports = { validateUpload, authIsAdmin };
+module.exports = { validateUpload, authIsOwner };

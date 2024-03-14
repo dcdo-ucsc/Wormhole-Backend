@@ -1,8 +1,8 @@
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
-const jwt = require('jsonwebtoken');
 const router = express.Router();
 const { UUID_EXPIRY } = require('../configs/serverConfig');
+const { verifyJwtToken } =  require('../helpers/jwtHelper');
 
 router.get('/generate', async (req, res, next) => {
   // Check if the userId exists
@@ -24,22 +24,15 @@ router.get('/generate', async (req, res, next) => {
  * otherwise its the owner
  */
 router.get('/fetchRole', async (req, res, next) => {
-  const SECRET_KEY = process.env.SECRET_KEY;
-  const authHeader = req.headers['authorization'];
-  const accessToken = authHeader && authHeader.split(' ')[1];
+  const payload = await verifyJwtToken(req, res);
 
-  // Check the userRole from token
-  jwt.verify(accessToken, SECRET_KEY, async (err, payload) => {
-    if (err) {
-      return res.status(401).json({ error: 'Token has expired' });
-    }
+  // If the token doesn't contain 'userId', then it is a user
+  if (!payload.userId) {
+    return res.status(200).json({ userRole: 'user' });
+  }
 
-    if (!payload.userId) {
-      return res.status(200).json({ userRole: 'user' });
-    }
-
-    return res.status(200).json({ userRole: 'owner' });
-  });
+  // Otherwise its the owner
+  return res.status(200).json({ userRole: 'owner' });
 });
 
 module.exports = router;

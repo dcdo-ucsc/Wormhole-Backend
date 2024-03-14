@@ -8,7 +8,7 @@ const { isValidSessionEntry } = require("../helpers/sessionValidation");
 const { dupeCheck, fileExist } = require("../utils/fileValidator");
 const {
   validateUpload,
-  authIsAdmin,
+  authIsOwner,
 } = require("../middlewares/uploadMiddleware");
 const { isAuthenticated } = require("../middlewares/downloadMiddleware");
 
@@ -26,7 +26,7 @@ router.get("/", (req, res) => {
  */
 router.post(
   "/upload",
-  authIsAdmin,
+  authIsOwner,
   validateUpload,
   upload.array("file"),
   multerErrorHandler,
@@ -67,7 +67,7 @@ router.get("/download", isAuthenticated, async (req, res) => {
   const archive = archiver("zip");
   const session = req.session;
 
-  // Set the header
+  // Expose headers for the front-end to access 'fileName' & 'content-type'
   res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition', 'Content-Type');
   
   session.downloadCount++;
